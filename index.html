@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Still — a quiet timer</title>
+<link rel="stylesheet" href="still.css">
+</head>
+<body>
+
+<div id="stage"><canvas id="c"></canvas></div>
+<div id="wake" aria-hidden="true"></div>
+
+<div id="ui">
+  <div id="clock" class="idle">15:00</div>
+
+  <div id="controls">
+    <div class="row" id="scenes"></div>
+    <div class="row" id="mins"></div>
+    <div id="primary">
+      <button id="start">begin</button>
+      <button id="reset">reset</button>
+      <button id="zen">zen</button>
+      <button id="autozen" aria-pressed="true">auto&#8209;zen</button>
+    </div>
+    <div id="hint">space begin &nbsp;·&nbsp; z zen &nbsp;·&nbsp; esc leave zen &nbsp;·&nbsp; p 30&#8209;second preview</div>
+  </div>
+</div>
+
+
+<script src="still.js"></script>
+<script src="scenes.js"></script>
+<script>start();</script>
+</body>
+</html>
