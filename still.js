@@ -26,7 +26,7 @@ const store = {
 };
 
 /* ---------------------------------------------------------------- state */
-const SCENES = ['water','candle','fuse','sunset','incense','flood'];
+const SCENES = ['water','candle','fuse','sunset','flood','trickle'];
 const MINUTES = [5,10,15,20,25,30,45,60,90,120];
 
 const S = {
@@ -155,8 +155,8 @@ function frame(now){
     case 'candle':  drawCandle(p,t,fin,dt); break;
     case 'fuse':    drawFuse(p,t,fin,dt); break;
     case 'sunset':  drawSunset(p,t,fin); break;
-    case 'incense': drawIncense(p,t,fin,dt); break;
     case 'flood':   drawFlood(p,t,fin); break;
+    case 'trickle': drawTrickle(p,t,fin); break;
   }
 
   // vignette everywhere but the sunset, which has its own light

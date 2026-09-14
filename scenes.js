@@ -14,7 +14,7 @@
  */
 
 /* ---------------------------------------------------------------- geometry & scene memory */
-let spiral=null, stars=null, clouds=null, bubbles=null, sparks=[], flakes=[], puffs=[];
+let spiral=null, stars=null, clouds=null, bubbles=null, sparks=[];
 const flick = {x:0, vx:0, s:1, vs:0, g:1};
 
 function buildGeometry(){
@@ -51,12 +51,10 @@ function buildGeometry(){
     bubbles.push({fx:Math.random(), y:Math.random(), r:rnd(0.9,3.0), v:rnd(0.012,0.045), ph:Math.random()*7});
   }
 
-  sparks=[]; flakes=[]; puffs=[];
-  ash.len=0; ash.last=0;
+  sparks=[];
 }
-const ash = {len:0, last:0};
 
-function resetSceneMemory(){ sparks=[]; flakes=[]; puffs=[]; ash.len=0; ash.last=0; }
+function resetSceneMemory(){ sparks=[]; }
 
 /* ================================================================ SCENES */
 /* Every scene keeps something moving at all times — at 30 minutes the
@@ -494,91 +492,128 @@ function drawSunset(p,t,fin){
   }
 }
 
-/* ---------------------------------------------- 5. incense */
-function drawIncense(p,t,fin,dt){
-  ctx.fillStyle='#08080b'; ctx.fillRect(0,0,W,H);
+/* ---------------------------------------------- 5. trickle */
+function drawTrickle(p,t,fin){
+  ctx.fillStyle='#06070a'; ctx.fillRect(0,0,W,H);
 
-  const baseX=W*0.44, baseY=H*0.80;
-  const L=Math.min(H*0.42, 330);
-  const ang=-Math.PI/2 + 0.20;
-  const dx=Math.cos(ang), dy=Math.sin(ang);
+  const level = 0.008 + 0.985*p;
+  const surfY  = H - level*H;
+  const deep=[14,48,66], shal=[46,132,150];
+  const sx = W/2;
 
-  const burnFrac = fin===null ? p : 1;
-  const consumed = L*0.62*burnFrac;
-  const tipD = L - consumed;
-  const tx = baseX + dx*tipD, ty = baseY + dy*tipD;
+  // thickness and turbulence scale inversely with timer duration
+  const streamW  = clamp(4 + 18*Math.pow(5/S.minutes, 0.65), 4, 22);
+  const wobScale = 1.5 + 9*Math.pow(5/S.minutes, 0.5);
+  const streamFade = fin===null ? 1 : Math.max(0, 1-fin*1.5);
 
-  // ash builds at the tip, then breaks off
-  ash.len = consumed - ash.last;
-  if(ash.len > 26){
-    flakes.push({x:tx,y:ty,vx:rnd(-6,6),vy:rnd(2,10),r:rnd(1,2.6),age:0,life:rnd(2.4,4.2),rot:Math.random()*7});
-    ash.last = consumed; ash.len = 0;
+  // ambient glow behind the surface
+  const g0 = ctx.createRadialGradient(sx,surfY,0, sx,surfY, H*0.55);
+  g0.addColorStop(0, rgb(shal, 0.08+0.14*p));
+  g0.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle=g0; ctx.fillRect(0,0,W,H);
+
+  // wave interference
+  const A1 = 5.0+2.5*Math.sin(t*0.23), A2 = 3.2;
+  const waveY = x => surfY
+    + A1*Math.sin(x*0.019 + t*0.9)
+    + A2*Math.sin(x*0.041 - t*1.37)
+    + 1.6*Math.sin(x*0.008 + t*0.41);
+
+  // water body
+  ctx.beginPath();
+  ctx.moveTo(-4, waveY(-4));
+  for(let x=-4; x<=W+4; x+=4) ctx.lineTo(x, waveY(x));
+  ctx.lineTo(W+4, H+4); ctx.lineTo(-4, H+4);
+  ctx.closePath();
+
+  const gw = ctx.createLinearGradient(0, surfY, 0, H);
+  gw.addColorStop(0,    rgb(shal, 0.92));
+  gw.addColorStop(0.28, rgb(mixc(shal,deep,0.50), 0.95));
+  gw.addColorStop(1,    rgb(deep, 0.98));
+  ctx.fillStyle=gw; ctx.fill();
+
+  // surface light bands
+  ctx.beginPath();
+  ctx.moveTo(-4, waveY(-4));
+  for(let x=-4; x<=W+4; x+=4) ctx.lineTo(x, waveY(x));
+  ctx.strokeStyle='rgba(190,240,250,0.55)'; ctx.lineWidth=2; ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-4, waveY(-4)+7);
+  for(let x=-4; x<=W+4; x+=4) ctx.lineTo(x, waveY(x)+7);
+  ctx.strokeStyle='rgba(190,240,250,0.13)'; ctx.lineWidth=7; ctx.stroke();
+
+  // trickle stream from top-center to water surface
+  if(streamFade>0 && surfY>2){
+    const impactX = sx + wobScale*Math.sin(surfY*0.045 + t*2.6);
+
+    // three passes: outer glow, body, bright core — each with a slight phase offset
+    // to give the stream a multi-strand, organic look
+    const passes = [
+      [streamW*2.4, 0.06, [150,225,245], 0   ],
+      [streamW,     0.32, [170,230,248], 0.28 ],
+      [streamW*0.4, 0.85, [220,250,255], 0.62 ],
+    ];
+    for(const [lw, al, col, phOff] of passes){
+      ctx.beginPath();
+      ctx.moveTo(sx, 0);
+      for(let y=3; y<surfY; y+=3){
+        const f = y/surfY;
+        ctx.lineTo(sx + wobScale*f*Math.sin(y*0.045 + t*2.6 + phOff), y);
+      }
+      ctx.lineTo(impactX, surfY);
+      ctx.strokeStyle = rgb(col, al*streamFade);
+      ctx.lineWidth = lw;
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.stroke();
+    }
+
+    // expanding ripple rings at the impact point
+    for(let i=0; i<3; i++){
+      const phase = ((t*2.0 + i*0.6) % 1.8) / 1.8;
+      const r = streamW*0.8 + phase*streamW*6;
+      const al = (1-phase)*0.44*streamFade;
+      if(al<0.01) continue;
+      ctx.beginPath();
+      ctx.ellipse(impactX, surfY, r, r*0.28, 0, 0, 7);
+      ctx.strokeStyle=`rgba(200,245,255,${al})`; ctx.lineWidth=1.3; ctx.stroke();
+    }
+
+    // source glow where stream enters from the top
+    const srcG = ctx.createRadialGradient(sx,0,0, sx,0, streamW*2);
+    srcG.addColorStop(0, `rgba(210,248,255,${0.38*streamFade})`);
+    srcG.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle=srcG;
+    ctx.beginPath(); ctx.arc(sx, 0, streamW*2, 0, 7); ctx.fill();
   }
 
-  // dish
-  ctx.beginPath(); ctx.ellipse(baseX,baseY+4,52,13,0,0,7);
-  ctx.fillStyle='#181a20'; ctx.fill();
-  ctx.strokeStyle='rgba(200,200,215,0.13)'; ctx.lineWidth=1.4; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(baseX,baseY-1,52,12,0,Math.PI,0);
-  ctx.fillStyle='#23262e'; ctx.fill();
-
-  // stick
-  ctx.beginPath(); ctx.moveTo(baseX,baseY); ctx.lineTo(tx,ty);
-  ctx.strokeStyle='#5d4530'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.stroke();
-
-  // ash cap
-  const al=Math.max(2,ash.len);
-  const ax=tx-dx*al, ay=ty-dy*al;
-  ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(tx,ty);
-  ctx.strokeStyle='#8d8a86'; ctx.lineWidth=4.8; ctx.stroke();
-  ctx.strokeStyle='rgba(40,38,36,0.35)'; ctx.lineWidth=1; ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
-
-  // ember — breathes as if air is moving over it
-  const alive = fin===null ? 1 : clamp(1-fin/5,0,1);
-  const glow = (0.62+0.38*Math.sin(t*1.5)+0.12*Math.sin(t*7.3))*alive;
-  if(alive>0.01){
-    const ge=ctx.createRadialGradient(ax,ay,0,ax,ay,26);
-    ge.addColorStop(0,`rgba(255,150,60,${0.55*glow})`);
-    ge.addColorStop(1,'rgba(255,90,20,0)');
-    ctx.fillStyle=ge; ctx.beginPath(); ctx.arc(ax,ay,26,0,7); ctx.fill();
-    ctx.beginPath(); ctx.arc(ax,ay,2.4,0,7);
-    ctx.fillStyle=`rgba(255,${180+50*glow|0},120,${0.95*alive})`; ctx.fill();
+  // bubbles
+  for(const b of bubbles){
+    b.y -= b.v*0.006;
+    if(b.y<0){ b.y=1; b.fx=Math.random(); }
+    const bx = b.fx*W + Math.sin(t*0.9+b.ph)*6;
+    const by  = H - b.y*(H-surfY);
+    if(by>waveY(bx)+3){
+      ctx.beginPath(); ctx.arc(bx,by,b.r,0,7);
+      ctx.fillStyle='rgba(215,245,255,0.28)'; ctx.fill();
+    }
   }
 
-  // falling ash
-  for(let i=flakes.length-1;i>=0;i--){
-    const f=flakes[i];
-    f.age+=dt; if(f.age>f.life){ flakes.splice(i,1); continue; }
-    f.vy+=18*dt; f.vx+=Math.sin(t*2+f.rot)*4*dt;
-    f.x+=f.vx*dt; f.y+=f.vy*dt;
-    if(f.y>baseY+2){ f.y=baseY+2; f.vy=0; f.vx*=0.7; }
-    ctx.globalAlpha=clamp(1-f.age/f.life,0,1)*0.7;
-    ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,7);
-    ctx.fillStyle='#b9b5ad'; ctx.fill();
+  // caustics
+  ctx.globalAlpha=0.09;
+  for(let i=0;i<7;i++){
+    const fx = W*(0.08+i*0.13);
+    const rr = 16+i*13 + Math.sin(t*0.7+i)*5;
+    ctx.beginPath(); ctx.ellipse(fx, H-10, rr, rr*0.18, 0, 0, 7);
+    ctx.strokeStyle='rgba(200,245,255,1)'; ctx.lineWidth=1.2; ctx.stroke();
   }
   ctx.globalAlpha=1;
 
-  // the smoke is the point
-  const sAl = fin===null ? 0.30 : 0.30*Math.max(0,1-fin/8);
-  smoke(ax,ay-3,t,{height:H*0.62, amp:34, alpha:sAl, seed:2.6, speed:0.42, width:15, tint:[206,204,210]});
-
-  // occasional slow puffs
-  if(fin===null && Math.random()<dt*1.4){
-    puffs.push({x:ax,y:ay,r:rnd(4,9),age:0,life:rnd(5,9),sw:Math.random()*7});
+  if(fin!==null){
+    const k = clamp(fin/3.2,0,1);
+    ctx.fillStyle = `rgba(190,240,250,${0.18*(1-k)*Math.max(0,Math.sin(fin*2.2))})`;
+    ctx.fillRect(0,0,W,H);
   }
-  for(let i=puffs.length-1;i>=0;i--){
-    const q=puffs[i];
-    q.age+=dt; if(q.age>q.life){ puffs.splice(i,1); continue; }
-    const f=q.age/q.life;
-    const qy=q.y-f*H*0.55;
-    const qx=q.x+Math.sin(f*3.4+q.sw)*38*f;
-    ctx.beginPath(); ctx.arc(qx,qy,q.r+f*46,0,7);
-    ctx.fillStyle=`rgba(200,200,208,${0.055*(1-f)*(1-f)})`; ctx.fill();
-  }
-
-  const gp=ctx.createRadialGradient(baseX,baseY,0,baseX,baseY,W*0.5);
-  gp.addColorStop(0,`rgba(255,140,60,${0.05*alive})`); gp.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=gp; ctx.fillRect(0,0,W,H);
 }
 
 /* ---------------------------------------------- 6. flood */
