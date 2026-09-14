@@ -29,8 +29,25 @@ const store = {
 const SCENES = ['water','candle','fuse','sunset','flood','trickle'];
 const MINUTES = [5,10,15,20,25,30,45,60,90,120];
 
+// Ten quiet, clean-reading type stacks — all system faces, so the app stays
+// dependency-free and works straight off the filesystem. Each is a fallback
+// chain, since no single face ships on every platform.
+const FONTS = [
+  { id:'serif',     label:'serif',     stack:'ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif' },
+  { id:'book',       label:'book',      stack:'Georgia, Cambria, "Times New Roman", Times, serif' },
+  { id:'garamond',   label:'garamond',  stack:'"EB Garamond", Garamond, "Apple Garamond", Baskerville, "Book Antiqua", "Palatino Linotype", serif' },
+  { id:'literary',   label:'literary',  stack:'"New York", ui-serif, Charter, "Bitstream Charter", Cambria, Georgia, serif' },
+  { id:'didone',     label:'didone',    stack:'Didot, "Bodoni MT", "Bodoni 72", "Hoefler Text", Georgia, serif' },
+  { id:'sans',       label:'sans',      stack:'"Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif' },
+  { id:'native',     label:'native',    stack:'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+  { id:'geometric',  label:'geometric', stack:'"Century Gothic", "Avenir Next", Avenir, Futura, "Segoe UI", sans-serif' },
+  { id:'rounded',    label:'rounded',   stack:'ui-rounded, "SF Pro Rounded", "Segoe UI Rounded", "Segoe UI", sans-serif' },
+  { id:'mono',       label:'mono',      stack:'ui-monospace, "SF Mono", "Cascadia Code", "Cascadia Mono", Consolas, "Roboto Mono", monospace' }
+];
+
 const S = {
   scene:    store.get('scene','water'),
+  font:     store.get('font','serif'),
   minutes:  store.get('minutes',15),
   autoZen:  store.get('autoZen',true),
   running:false,
@@ -41,7 +58,14 @@ const S = {
   zen:false
 };
 if(!SCENES.includes(S.scene)) S.scene='water';
+if(!FONTS.some(f=>f.id===S.font)) S.font='serif';
 if(!MINUTES.includes(S.minutes)) S.minutes=15;
+
+function applyFont(id){
+  const f = FONTS.find(x=>x.id===id) || FONTS[0];
+  document.documentElement.style.setProperty('--font', f.stack);
+}
+applyFont(S.font);
 
 const durationMs = () => S.preview ? 30000 : S.minutes*60000;
 const elapsedMs  = () => S.running ? (Date.now()-S.startedAt) : S.elapsed;
@@ -257,6 +281,19 @@ SCENES.forEach(name=>{
   scenesEl.appendChild(b);
 });
 
+// font buttons — each one previews live in its own face
+const fontsEl=document.getElementById('fonts');
+FONTS.forEach(f=>{
+  const b=document.createElement('button');
+  b.textContent=f.label; b.style.fontFamily=f.stack;
+  b.setAttribute('aria-pressed', String(f.id===S.font));
+  b.addEventListener('click',()=>{
+    S.font=f.id; store.set('font',f.id); applyFont(f.id);
+    [...fontsEl.children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  });
+  fontsEl.appendChild(b);
+});
+
 // minute buttons
 const minsEl=document.getElementById('mins');
 MINUTES.forEach(m=>{
@@ -279,6 +316,7 @@ window.addEventListener('keydown', e=>{
   else if(k==='escape'){ setZen(false); }
   else if(k==='r'){ reset(); }
   else if(k==='p'){ reset(); S.preview=true; begin(); }
+  else if(k==='f'){ fontsEl.children[(FONTS.findIndex(x=>x.id===S.font)+1)%FONTS.length].click(); }
   else if(k>='1'&&k<='6'){ scenesEl.children[+k-1].click(); }
 });
 

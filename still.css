@@ -4,7 +4,7 @@
     --dim:rgba(233,229,220,0.42);
     --faint:rgba(233,229,220,0.16);
     --hair:rgba(233,229,220,0.14);
-    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --font: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
   }
   /* The stage is dark by design, like a planetarium — the tokens hold steady
      across themes so the scenes read the same in any viewer. */
@@ -23,7 +23,7 @@
   html,body{height:100%;}
   body{
     margin:0; background:var(--bg); color:var(--fg);
-    font-family:var(--serif);
+    font-family:var(--font);
     overflow:hidden;
     -webkit-font-smoothing:antialiased;
     touch-action:manipulation;
@@ -84,6 +84,9 @@
 
   #mins{gap:0; max-width:min(560px,94vw);}
   #mins button{font-variant-numeric:tabular-nums; min-width:44px; text-align:center;}
+
+  #fonts{max-width:min(880px,94vw);}
+  #fonts button{font-size:0.88rem; padding:6px 10px;}
 
 
   #primary{
