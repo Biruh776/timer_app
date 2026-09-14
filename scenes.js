@@ -580,3 +580,78 @@ function drawIncense(p,t,fin,dt){
   gp.addColorStop(0,`rgba(255,140,60,${0.05*alive})`); gp.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=gp; ctx.fillRect(0,0,W,H);
 }
+
+/* ---------------------------------------------- 6. flood */
+function drawFlood(p,t,fin){
+  ctx.fillStyle='#06070a'; ctx.fillRect(0,0,W,H);
+
+  const level = 0.008 + 0.985*p;
+  const surfY  = H - level*H;
+
+  const deep=[14,48,66], shal=[46,132,150];
+
+  // ambient glow emanating from the surface, grows as fill rises
+  const g0 = ctx.createRadialGradient(W/2,surfY,0, W/2,surfY, H*0.55);
+  g0.addColorStop(0, rgb(shal, 0.08+0.14*p));
+  g0.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle=g0; ctx.fillRect(0,0,W,H);
+
+  // two sine waves at different speeds — same interference pattern as water scene
+  const A1 = 5.0+2.5*Math.sin(t*0.23), A2 = 3.2;
+  const waveY = x => surfY
+    + A1*Math.sin(x*0.019 + t*0.9)
+    + A2*Math.sin(x*0.041 - t*1.37)
+    + 1.6*Math.sin(x*0.008 + t*0.41);
+
+  // water body from wave surface to bottom of screen
+  ctx.beginPath();
+  ctx.moveTo(-4, waveY(-4));
+  for(let x=-4; x<=W+4; x+=4) ctx.lineTo(x, waveY(x));
+  ctx.lineTo(W+4, H+4); ctx.lineTo(-4, H+4);
+  ctx.closePath();
+
+  const gw = ctx.createLinearGradient(0, surfY, 0, H);
+  gw.addColorStop(0,    rgb(shal, 0.92));
+  gw.addColorStop(0.28, rgb(mixc(shal,deep,0.50), 0.95));
+  gw.addColorStop(1,    rgb(deep, 0.98));
+  ctx.fillStyle=gw; ctx.fill();
+
+  // light band riding just under the surface
+  ctx.beginPath();
+  ctx.moveTo(-4, waveY(-4));
+  for(let x=-4; x<=W+4; x+=4) ctx.lineTo(x, waveY(x));
+  ctx.strokeStyle='rgba(190,240,250,0.55)'; ctx.lineWidth=2; ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-4, waveY(-4)+7);
+  for(let x=-4; x<=W+4; x+=4) ctx.lineTo(x, waveY(x)+7);
+  ctx.strokeStyle='rgba(190,240,250,0.13)'; ctx.lineWidth=7; ctx.stroke();
+
+  // bubbles distributed across the full screen width
+  for(const b of bubbles){
+    b.y -= b.v*0.006;
+    if(b.y<0){ b.y=1; b.fx=Math.random(); }
+    const bx = b.fx*W + Math.sin(t*0.9+b.ph)*6;
+    const by  = H - b.y*(H-surfY);
+    if(by>waveY(bx)+3){
+      ctx.beginPath(); ctx.arc(bx,by,b.r,0,7);
+      ctx.fillStyle='rgba(215,245,255,0.28)'; ctx.fill();
+    }
+  }
+
+  // caustic ripples spread across the floor
+  ctx.globalAlpha=0.09;
+  for(let i=0;i<7;i++){
+    const fx = W*(0.08+i*0.13);
+    const rr = 16+i*13 + Math.sin(t*0.7+i)*5;
+    ctx.beginPath(); ctx.ellipse(fx, H-10, rr, rr*0.18, 0, 0, 7);
+    ctx.strokeStyle='rgba(200,245,255,1)'; ctx.lineWidth=1.2; ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+
+  if(fin!==null){
+    const k = clamp(fin/3.2,0,1);
+    ctx.fillStyle = `rgba(190,240,250,${0.18*(1-k)*Math.max(0,Math.sin(fin*2.2))})`;
+    ctx.fillRect(0,0,W,H);
+  }
+}

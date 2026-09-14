@@ -26,7 +26,7 @@ const store = {
 };
 
 /* ---------------------------------------------------------------- state */
-const SCENES = ['water','candle','fuse','sunset','incense'];
+const SCENES = ['water','candle','fuse','sunset','incense','flood'];
 const MINUTES = [5,10,15,20,25,30,45,60,90,120];
 
 const S = {
@@ -156,6 +156,7 @@ function frame(now){
     case 'fuse':    drawFuse(p,t,fin,dt); break;
     case 'sunset':  drawSunset(p,t,fin); break;
     case 'incense': drawIncense(p,t,fin,dt); break;
+    case 'flood':   drawFlood(p,t,fin); break;
   }
 
   // vignette everywhere but the sunset, which has its own light
@@ -278,7 +279,7 @@ window.addEventListener('keydown', e=>{
   else if(k==='escape'){ setZen(false); }
   else if(k==='r'){ reset(); }
   else if(k==='p'){ reset(); S.preview=true; begin(); }
-  else if(k>='1'&&k<='5'){ scenesEl.children[+k-1].click(); }
+  else if(k>='1'&&k<='6'){ scenesEl.children[+k-1].click(); }
 });
 
 /* ---------------------------------------------------------------- boot */
