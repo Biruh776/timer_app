@@ -45,7 +45,6 @@
     display:flex; flex-direction:column; justify-content:space-between;
     padding:max(22px, env(safe-area-inset-top)) 22px max(26px, env(safe-area-inset-bottom));
     pointer-events:none;
-    transition:opacity 900ms ease;
   }
   #ui > *{pointer-events:auto;}
 
@@ -62,6 +61,7 @@
     margin-top:2vh;
     text-shadow:0 2px 30px rgba(0,0,0,0.75);
     transition:opacity 600ms ease;
+    pointer-events:none;   /* never intercepts the tap that wakes zen */
   }
   #clock.idle{opacity:0.34;}
 
@@ -69,6 +69,7 @@
   #controls{
     display:flex; flex-direction:column; align-items:center; gap:20px;
     text-shadow:0 1px 16px rgba(0,0,0,0.8);
+    transition:opacity 900ms ease;
   }
 
   .row{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px;}
@@ -93,7 +94,7 @@
   #mins{gap:0; max-width:min(560px,94vw);}
   #mins button{font-variant-numeric:tabular-nums; min-width:44px; text-align:center;}
 
-  #fonts{max-width:min(620px,94vw);}
+  #fonts{max-width:min(880px,94vw);}
   #fonts button{font-size:0.88rem; padding:6px 10px;}
 
 
@@ -111,7 +112,8 @@
   }
 
   /* ---- zen ---- */
-  body.zen #ui{opacity:0; pointer-events:none;}
+  body.zen #controls{opacity:0; pointer-events:none;}
+  body.zen:not(.keep-clock) #clock{opacity:0;}
   body.zen{cursor:none;}
   #wake{
     position:fixed; inset:0; display:none; z-index:5;
@@ -123,7 +125,7 @@
     #primary{gap:18px;}
   }
   @media (prefers-reduced-motion: reduce){
-    #ui{transition:none;}
+    #controls, #clock{transition:none;}
   }
 </style>
 </head>
@@ -144,6 +146,7 @@
       <button id="reset">reset</button>
       <button id="zen">zen</button>
       <button id="autozen" aria-pressed="true">auto&#8209;zen</button>
+      <button id="keepclock" aria-pressed="false">keep&#8209;timer</button>
     </div>
     <div id="hint">space begin &nbsp;·&nbsp; z zen &nbsp;·&nbsp; esc leave zen &nbsp;·&nbsp; f next font &nbsp;·&nbsp; p 30&#8209;second preview</div>
   </div>
@@ -205,6 +208,7 @@ const S = {
   font:     store.get('font','serif'),
   minutes:  store.get('minutes',15),
   autoZen:  store.get('autoZen',true),
+  keepClock: store.get('keepClock',false),
   running:false,
   preview:false,
   elapsed:0,        // ms banked while paused
@@ -364,6 +368,7 @@ const btnStart=document.getElementById('start');
 const btnReset=document.getElementById('reset');
 const btnZen=document.getElementById('zen');
 const btnAuto=document.getElementById('autozen');
+const btnKeep=document.getElementById('keepclock');
 let zenTimer=null;
 
 function begin(){
@@ -419,6 +424,15 @@ btnAuto.addEventListener('click', ()=>{
   store.set('autoZen',S.autoZen);
 });
 btnAuto.setAttribute('aria-pressed', String(S.autoZen));
+
+btnKeep.addEventListener('click', ()=>{
+  S.keepClock=!S.keepClock;
+  btnKeep.setAttribute('aria-pressed', String(S.keepClock));
+  document.body.classList.toggle('keep-clock', S.keepClock);
+  store.set('keepClock',S.keepClock);
+});
+btnKeep.setAttribute('aria-pressed', String(S.keepClock));
+document.body.classList.toggle('keep-clock', S.keepClock);
 
 // leaving zen: a tap anywhere, or a key
 document.getElementById('wake').addEventListener('pointerdown', e=>{ e.preventDefault(); setZen(false); });

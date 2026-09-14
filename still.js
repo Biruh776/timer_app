@@ -50,6 +50,7 @@ const S = {
   font:     store.get('font','serif'),
   minutes:  store.get('minutes',15),
   autoZen:  store.get('autoZen',true),
+  keepClock: store.get('keepClock',false),
   running:false,
   preview:false,
   elapsed:0,        // ms banked while paused
@@ -209,6 +210,7 @@ const btnStart=document.getElementById('start');
 const btnReset=document.getElementById('reset');
 const btnZen=document.getElementById('zen');
 const btnAuto=document.getElementById('autozen');
+const btnKeep=document.getElementById('keepclock');
 let zenTimer=null;
 
 function begin(){
@@ -264,6 +266,15 @@ btnAuto.addEventListener('click', ()=>{
   store.set('autoZen',S.autoZen);
 });
 btnAuto.setAttribute('aria-pressed', String(S.autoZen));
+
+btnKeep.addEventListener('click', ()=>{
+  S.keepClock=!S.keepClock;
+  btnKeep.setAttribute('aria-pressed', String(S.keepClock));
+  document.body.classList.toggle('keep-clock', S.keepClock);
+  store.set('keepClock',S.keepClock);
+});
+btnKeep.setAttribute('aria-pressed', String(S.keepClock));
+document.body.classList.toggle('keep-clock', S.keepClock);
 
 // leaving zen: a tap anywhere, or a key
 document.getElementById('wake').addEventListener('pointerdown', e=>{ e.preventDefault(); setZen(false); });

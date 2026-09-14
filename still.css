@@ -37,7 +37,6 @@
     display:flex; flex-direction:column; justify-content:space-between;
     padding:max(22px, env(safe-area-inset-top)) 22px max(26px, env(safe-area-inset-bottom));
     pointer-events:none;
-    transition:opacity 900ms ease;
   }
   #ui > *{pointer-events:auto;}
 
@@ -54,6 +53,7 @@
     margin-top:2vh;
     text-shadow:0 2px 30px rgba(0,0,0,0.75);
     transition:opacity 600ms ease;
+    pointer-events:none;   /* never intercepts the tap that wakes zen */
   }
   #clock.idle{opacity:0.34;}
 
@@ -61,6 +61,7 @@
   #controls{
     display:flex; flex-direction:column; align-items:center; gap:20px;
     text-shadow:0 1px 16px rgba(0,0,0,0.8);
+    transition:opacity 900ms ease;
   }
 
   .row{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px;}
@@ -103,7 +104,8 @@
   }
 
   /* ---- zen ---- */
-  body.zen #ui{opacity:0; pointer-events:none;}
+  body.zen #controls{opacity:0; pointer-events:none;}
+  body.zen:not(.keep-clock) #clock{opacity:0;}
   body.zen{cursor:none;}
   #wake{
     position:fixed; inset:0; display:none; z-index:5;
@@ -115,5 +117,5 @@
     #primary{gap:18px;}
   }
   @media (prefers-reduced-motion: reduce){
-    #ui{transition:none;}
+    #controls, #clock{transition:none;}
   }
